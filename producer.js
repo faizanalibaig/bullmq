@@ -1,22 +1,22 @@
 const { Queue } = require("bullmq");
+const IORedis = require("ioredis");
 
-const notificationKue = new Queue("notification", {
-  connection: {
-    host: "127.0.0.1",
-    port: "6379",
-  },
+const connection = new IORedis({
+  host: "127.0.0.1",
+  port: 6379,
+  maxRetriesPerRequest: null,
 });
 
-async function init() {
-  for (let i = 0; i < 100; i++) {
-    const result = await notificationKue.add("email to zyn", {
-      email: "zyn@gmail.com",
-      subject: "new message",
-      body: "hey zyn, how are you?",
-    });
+const notificationQueue = new Queue("notification-1", { connection });
 
-    console.log("job added to kue", result.id);
+async function createProducerJob(jobData) {
+  try {
+    await notificationQueue.add("sendEmail", jobData);
+    console.log("Job added to queue:", jobData);
+  } catch (error) {
+    console.error("Error adding job:", error);
+    throw error;
   }
 }
 
-init();
+module.exports = { createProducerJob };
